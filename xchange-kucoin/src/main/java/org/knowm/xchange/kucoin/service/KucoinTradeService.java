@@ -38,7 +38,7 @@ public class KucoinTradeService extends KucoinTradeServiceRaw implements TradeSe
   @Override
   public OpenOrders getOpenOrders() throws IOException {
 
-    throw new ExchangeException("You need to provide the currency pair to get open orders.");
+    return KucoinAdapters.adaptActiveOrders(this.getKucoinOpenOrdersInKv(null, null).getData());
   }
 
   @Override
@@ -51,7 +51,7 @@ public class KucoinTradeService extends KucoinTradeServiceRaw implements TradeSe
         currencyPair,
         getKucoinOpenOrders(currencyPair, null)
             .getData()); // order type null returns both bid and ask
-  }
+}
 
   @Override
   public String placeMarketOrder(MarketOrder marketOrder) throws IOException {

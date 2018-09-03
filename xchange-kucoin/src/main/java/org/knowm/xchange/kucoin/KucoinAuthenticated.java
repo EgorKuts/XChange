@@ -17,6 +17,7 @@ import org.knowm.xchange.kucoin.dto.account.KucoinCoinBalances;
 import org.knowm.xchange.kucoin.dto.account.KucoinDepositAddress;
 import org.knowm.xchange.kucoin.dto.account.KucoinWalletRecords;
 import org.knowm.xchange.kucoin.dto.trading.KucoinActiveOrders;
+import org.knowm.xchange.kucoin.dto.trading.KucoinActiveOrdersInKv;
 import org.knowm.xchange.kucoin.dto.trading.KucoinDealtOrdersInfo;
 import org.knowm.xchange.kucoin.dto.trading.KucoinOrder;
 import si.mazi.rescu.ParamsDigest;
@@ -84,6 +85,17 @@ public interface KucoinAuthenticated extends Kucoin {
       @QueryParam("symbol") String symbol,
       @QueryParam("type") KucoinOrderType type)
       throws IOException, KucoinException;
+
+  /** Lists all active order in kv format */
+  @GET
+  @Path("order/active-map")
+  KucoinResponse<KucoinActiveOrdersInKv> getAllActiveOrdersInKv(
+      @HeaderParam(HEADER_APIKEY) String apiKey,
+      @HeaderParam(HEADER_NONCE) SynchronizedValueFactory<Long> nonce,
+      @HeaderParam(HEADER_SIGNATURE) ParamsDigest signature,
+      @QueryParam("symbol") String symbol,
+      @QueryParam("type") KucoinOrderType type)
+       throws IOException, KucoinException;
 
   /** Returns the trade history. */
   @GET

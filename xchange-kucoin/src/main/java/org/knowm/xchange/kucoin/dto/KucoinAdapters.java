@@ -1,11 +1,9 @@
 package org.knowm.xchange.kucoin.dto;
 
 import java.math.BigDecimal;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+
 import org.knowm.xchange.currency.Currency;
 import org.knowm.xchange.currency.CurrencyPair;
 import org.knowm.xchange.dto.Order.OrderStatus;
@@ -31,196 +29,232 @@ import org.knowm.xchange.kucoin.dto.marketdata.KucoinCoin;
 import org.knowm.xchange.kucoin.dto.marketdata.KucoinDealOrder;
 import org.knowm.xchange.kucoin.dto.marketdata.KucoinOrderBook;
 import org.knowm.xchange.kucoin.dto.marketdata.KucoinTicker;
-import org.knowm.xchange.kucoin.dto.trading.KucoinActiveOrder;
-import org.knowm.xchange.kucoin.dto.trading.KucoinActiveOrders;
-import org.knowm.xchange.kucoin.dto.trading.KucoinDealtOrder;
+import org.knowm.xchange.kucoin.dto.trading.*;
 
 public class KucoinAdapters {
 
-  public static String adaptCurrencyPair(CurrencyPair pair) {
+    public static String adaptCurrencyPair(CurrencyPair pair) {
 
-    return pair.base.getCurrencyCode() + "-" + pair.counter.getCurrencyCode();
-  }
+        return pair.base.getCurrencyCode() + "-" + pair.counter.getCurrencyCode();
+    }
 
-  public static Ticker adaptTicker(KucoinTicker ticker) {
+    public static Ticker adaptTicker(KucoinTicker ticker) {
 
-    return new Ticker.Builder()
-        .currencyPair(
-            new CurrencyPair(
-                Currency.getInstance(ticker.getCoinType()),
-                Currency.getInstance(ticker.getCoinTypePair())))
-        .bid(ticker.getBuy())
-        .ask(ticker.getSell())
-        .high(ticker.getHigh())
-        .low(ticker.getLow())
-        .last(ticker.getLastDealPrice())
-        .volume(ticker.getVol())
-        .quoteVolume(ticker.getVolValue())
-        .timestamp(new Date(ticker.getDatetime()))
-        .build();
-  }
+        return new Ticker.Builder()
+                .currencyPair(
+                        new CurrencyPair(
+                                Currency.getInstance(ticker.getCoinType()),
+                                Currency.getInstance(ticker.getCoinTypePair())))
+                .bid(ticker.getBuy())
+                .ask(ticker.getSell())
+                .high(ticker.getHigh())
+                .low(ticker.getLow())
+                .last(ticker.getLastDealPrice())
+                .volume(ticker.getVol())
+                .quoteVolume(ticker.getVolValue())
+                .timestamp(new Date(ticker.getDatetime()))
+                .build();
+    }
 
-  public static OrderBook adaptOrderBook(
-      KucoinResponse<KucoinOrderBook> response, CurrencyPair currencyPair) {
+    public static OrderBook adaptOrderBook(
+            KucoinResponse<KucoinOrderBook> response, CurrencyPair currencyPair) {
 
-    KucoinOrderBook kcOrders = response.getData();
-    Date timestamp = new Date(response.getTimestamp());
-    List<LimitOrder> asks = new LinkedList<>();
-    kcOrders
-        .getSell()
-        .stream()
-        .forEach(s -> asks.add(adaptLimitOrder(currencyPair, OrderType.ASK, s, timestamp)));
-    List<LimitOrder> bids = new LinkedList<>();
-    kcOrders
-        .getBuy()
-        .stream()
-        .forEach(s -> bids.add(adaptLimitOrder(currencyPair, OrderType.BID, s, timestamp)));
-    return new OrderBook(timestamp, asks, bids);
-  }
+        KucoinOrderBook kcOrders = response.getData();
+        Date timestamp = new Date(response.getTimestamp());
+        List<LimitOrder> asks = new LinkedList<>();
+        kcOrders
+                .getSell()
+                .stream()
+                .forEach(s -> asks.add(adaptLimitOrder(currencyPair, OrderType.ASK, s, timestamp)));
+        List<LimitOrder> bids = new LinkedList<>();
+        kcOrders
+                .getBuy()
+                .stream()
+                .forEach(s -> bids.add(adaptLimitOrder(currencyPair, OrderType.BID, s, timestamp)));
+        return new OrderBook(timestamp, asks, bids);
+    }
 
-  public static Trade adaptTrade(KucoinDealOrder kucoinTrade, CurrencyPair currencyPair) {
+    public static Trade adaptTrade(KucoinDealOrder kucoinTrade, CurrencyPair currencyPair) {
 
-    return new Trade(
-        kucoinTrade.getOrderType().getOrderType(),
-        kucoinTrade.getAmount(),
-        currencyPair,
-        kucoinTrade.getPrice(),
-        new Date(kucoinTrade.getTimestamp()),
-        null);
-  }
+        return new Trade(
+                kucoinTrade.getOrderType().getOrderType(),
+                kucoinTrade.getAmount(),
+                currencyPair,
+                kucoinTrade.getPrice(),
+                new Date(kucoinTrade.getTimestamp()),
+                null);
+    }
 
-  private static LimitOrder adaptLimitOrder(
-      CurrencyPair currencyPair,
-      OrderType orderType,
-      List<BigDecimal> kucoinLimitOrder,
-      Date timestamp) {
+    private static LimitOrder adaptLimitOrder(
+            CurrencyPair currencyPair,
+            OrderType orderType,
+            List<BigDecimal> kucoinLimitOrder,
+            Date timestamp) {
 
-    return new LimitOrder(
-        orderType, kucoinLimitOrder.get(1), currencyPair, null, timestamp, kucoinLimitOrder.get(0));
-  }
+        return new LimitOrder(
+                orderType, kucoinLimitOrder.get(1), currencyPair, null, timestamp, kucoinLimitOrder.get(0));
+    }
 
-  public static OpenOrders adaptActiveOrders(CurrencyPair currencyPair, KucoinActiveOrders data) {
+    public static OpenOrders adaptActiveOrders(CurrencyPair currencyPair, KucoinActiveOrders data) {
 
-    List<LimitOrder> openOrders = new LinkedList<>();
-    data.getBuy().stream().forEach(order -> openOrders.add(adaptActiveOrder(currencyPair, order)));
-    data.getSell().stream().forEach(order -> openOrders.add(adaptActiveOrder(currencyPair, order)));
-    return new OpenOrders(openOrders);
-  }
+        List<LimitOrder> openOrders = new LinkedList<>();
+        data.getBuy().stream().forEach(order -> openOrders.add(adaptActiveOrder(currencyPair, order)));
+        data.getSell().stream().forEach(order -> openOrders.add(adaptActiveOrder(currencyPair, order)));
+        return new OpenOrders(openOrders);
+    }
 
-  private static LimitOrder adaptActiveOrder(CurrencyPair currencyPair, KucoinActiveOrder order) {
+    public static OpenOrders adaptActiveOrders(KucoinActiveOrdersInKv ordersList) {
 
-    return new LimitOrder.Builder(order.getOrderType().getOrderType(), currencyPair)
-        .timestamp(order.getTimestamp())
-        .id(order.getOrderOid())
-        .limitPrice(order.getPrice())
-        .originalAmount(order.getAmount()) // this might be the remaining amount, not sure
-        .cumulativeAmount(order.getDealAmount())
-        .orderStatus(
-            order.getDealAmount().compareTo(BigDecimal.ZERO) == 0
-                ? OrderStatus.NEW
-                : OrderStatus.PARTIALLY_FILLED)
-        .build();
-  }
+        Objects.requireNonNull(ordersList);
 
-  public static UserTrades adaptUserTrades(List<KucoinDealtOrder> orders) {
+        List<LimitOrder> openOrders = new LinkedList<>();
+        ordersList.getBUY().stream().map(d -> adaptActiveOrder(d, OrderType.BID))
+                .forEach(openOrders::add);
+        ordersList.getSELL().stream().map(d -> adaptActiveOrder(d, OrderType.ASK))
+                .forEach(openOrders::add);
+        return new OpenOrders(openOrders);
+    }
 
-    List<UserTrade> trades = new LinkedList<>();
-    orders.stream().forEach(order -> trades.add(adaptUserTrade(order)));
-    return new UserTrades(trades, TradeSortType.SortByTimestamp);
-  }
+    private static LimitOrder adaptActiveOrder(KucoinOrderDetails orderDetails, OrderType orderType) {
 
-  private static UserTrade adaptUserTrade(KucoinDealtOrder order) {
+        return new LimitOrder.Builder(orderType,
+                    new CurrencyPair(orderDetails.getCoinType(),
+                            orderDetails.getCoinTypePair()))
+                .timestamp(orderDetails.getCreatedAt())
+                .id(orderDetails.getOid())
+                .limitPrice(orderDetails.getPrice())
+                .originalAmount(orderDetails.getPendingAmount())
+                .cumulativeAmount(orderDetails.getDealAmount())
+                .orderStatus(getOrderStatus(orderDetails))
+                .build();
+    }
 
-    return new UserTrade.Builder()
-        .currencyPair(new CurrencyPair(order.getCoinType(), order.getCoinTypePair()))
-        .id(order.getOid())
-        .orderId(order.getOrderOid())
-        .originalAmount(order.getAmount())
-        .price(order.getDealPrice())
-        .timestamp(new Date(order.getCreatedAt()))
-        .type(order.getDirection().getOrderType())
-        .feeAmount(order.getFee())
-        .feeCurrency(
-            order.getDirection().equals(KucoinOrderType.BUY)
-                ? Currency.getInstance(order.getCoinType())
-                : Currency.getInstance(order.getCoinTypePair()))
-        .build();
-  }
+    private static OrderStatus getOrderStatus(KucoinOrderDetails orderDetails) {
+        BigDecimal dealAmount = orderDetails.getDealAmount();
 
-  public static ExchangeMetaData adaptExchangeMetadata(
-      List<KucoinTicker> tickers, List<KucoinCoin> coins) {
+        if(Objects.isNull(dealAmount))
+            return OrderStatus.UNKNOWN;
 
-    Map<String, KucoinCoin> coinMap =
-        coins.stream().collect(Collectors.toMap(c -> c.getCoin(), c -> c));
-    Map<CurrencyPair, CurrencyPairMetaData> pairMeta = adaptCurrencyPairMap(tickers, coinMap);
-    Map<Currency, CurrencyMetaData> coinMeta = adaptCurrencyMap(coins);
-    return new ExchangeMetaData(pairMeta, coinMeta, null, null, null);
-  }
+        if(dealAmount.compareTo(BigDecimal.ZERO) == 0)
+            return OrderStatus.NEW;
 
-  private static Map<Currency, CurrencyMetaData> adaptCurrencyMap(List<KucoinCoin> coins) {
+        return OrderStatus.PARTIALLY_FILLED;
+    }
 
-    return coins
-        .stream()
-        .collect(
-            Collectors.toMap(
-                c -> Currency.getInstance(c.getCoin()), c -> adaptCurrencyMetadata(c)));
-  }
+    private static LimitOrder adaptActiveOrder(CurrencyPair currencyPair, KucoinActiveOrder order) {
 
-  private static CurrencyMetaData adaptCurrencyMetadata(KucoinCoin coin) {
-    return new CurrencyMetaData(coin.getTradePrecision(), coin.getWithdrawMinFee());
-  }
+        return new LimitOrder.Builder(order.getOrderType().getOrderType(), currencyPair)
+                .timestamp(order.getTimestamp())
+                .id(order.getOrderOid())
+                .limitPrice(order.getPrice())
+                .originalAmount(order.getAmount()) // this might be the remaining amount, not sure
+                .cumulativeAmount(order.getDealAmount())
+                .orderStatus(
+                        order.getDealAmount().compareTo(BigDecimal.ZERO) == 0
+                                ? OrderStatus.NEW
+                                : OrderStatus.PARTIALLY_FILLED)
+                .build();
+    }
 
-  private static Map<CurrencyPair, CurrencyPairMetaData> adaptCurrencyPairMap(
-      List<KucoinTicker> symbols, Map<String, KucoinCoin> coins) {
+    public static UserTrades adaptUserTrades(List<KucoinDealtOrder> orders) {
 
-    return symbols
-        .stream()
-        .collect(
-            Collectors.toMap(
-                t -> new CurrencyPair(t.getCoinType(), t.getCoinTypePair()),
-                t -> adaptCurrencyPairMetadata(t, coins.get(t.getCoinTypePair()))));
-  }
+        List<UserTrade> trades = new LinkedList<>();
+        orders.stream().forEach(order -> trades.add(adaptUserTrade(order)));
+        return new UserTrades(trades, TradeSortType.SortByTimestamp);
+    }
 
-  private static CurrencyPairMetaData adaptCurrencyPairMetadata(
-      KucoinTicker tick, KucoinCoin coin) {
+    private static UserTrade adaptUserTrade(KucoinDealtOrder order) {
 
-    // trading scale is determined by the base currency's trade precision
-    return new CurrencyPairMetaData(tick.getFeeRate(), null, null, coin.getTradePrecision());
-  }
+        return new UserTrade.Builder()
+                .currencyPair(new CurrencyPair(order.getCoinType(), order.getCoinTypePair()))
+                .id(order.getOid())
+                .orderId(order.getOrderOid())
+                .originalAmount(order.getAmount())
+                .price(order.getDealPrice())
+                .timestamp(new Date(order.getCreatedAt()))
+                .type(order.getDirection().getOrderType())
+                .feeAmount(order.getFee())
+                .feeCurrency(
+                        order.getDirection().equals(KucoinOrderType.BUY)
+                                ? Currency.getInstance(order.getCoinType())
+                                : Currency.getInstance(order.getCoinTypePair()))
+                .build();
+    }
 
-  public static AccountInfo adaptAccountInfo(List<KucoinCoinBalance> balances) {
+    public static ExchangeMetaData adaptExchangeMetadata(
+            List<KucoinTicker> tickers, List<KucoinCoin> coins) {
 
-    return new AccountInfo(
-        new Wallet(
-            balances.stream().map(KucoinAdapters::adaptBalance).collect(Collectors.toList())));
-  }
+        Map<String, KucoinCoin> coinMap =
+                coins.stream().collect(Collectors.toMap(c -> c.getCoin(), c -> c));
+        Map<CurrencyPair, CurrencyPairMetaData> pairMeta = adaptCurrencyPairMap(tickers, coinMap);
+        Map<Currency, CurrencyMetaData> coinMeta = adaptCurrencyMap(coins);
+        return new ExchangeMetaData(pairMeta, coinMeta, null, null, null);
+    }
 
-  private static Balance adaptBalance(KucoinCoinBalance balance) {
+    private static Map<Currency, CurrencyMetaData> adaptCurrencyMap(List<KucoinCoin> coins) {
 
-    BigDecimal avail = balance.getBalance();
-    BigDecimal freezeBalance = balance.getFreezeBalance();
-    BigDecimal total = BigDecimal.ZERO.add(avail).add(freezeBalance);
-    return new Balance(Currency.getInstance(balance.getCoinType()), total, avail, freezeBalance);
-  }
+        return coins
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                c -> Currency.getInstance(c.getCoin()), c -> adaptCurrencyMetadata(c)));
+    }
 
-  public static List<FundingRecord> adaptFundingHistory(List<KucoinWalletRecord> records) {
+    private static CurrencyMetaData adaptCurrencyMetadata(KucoinCoin coin) {
+        return new CurrencyMetaData(coin.getTradePrecision(), coin.getWithdrawMinFee());
+    }
 
-    return records.stream().map(KucoinAdapters::adaptFundingRecord).collect(Collectors.toList());
-  }
+    private static Map<CurrencyPair, CurrencyPairMetaData> adaptCurrencyPairMap(
+            List<KucoinTicker> symbols, Map<String, KucoinCoin> coins) {
 
-  private static FundingRecord adaptFundingRecord(KucoinWalletRecord record) {
+        return symbols
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                t -> new CurrencyPair(t.getCoinType(), t.getCoinTypePair()),
+                                t -> adaptCurrencyPairMetadata(t, coins.get(t.getCoinTypePair()))));
+    }
 
-    return new FundingRecord.Builder()
-        .setAmount(record.getAmount())
-        .setAddress(record.getAddress())
-        .setCurrency(Currency.getInstance(record.getCoinType()))
-        .setDate(new Date(record.getCreatedAt()))
-        .setFee(record.getFee())
-        .setStatus(record.getStatus().getFundingRecordStatus())
-        .setBlockchainTransactionHash(record.getOuterWalletTxid())
-        .setInternalId(record.getOid())
-        .setDescription(record.getRemark())
-        .setType(record.getType().getFundingRecordType())
-        .build();
-  }
+    private static CurrencyPairMetaData adaptCurrencyPairMetadata(
+            KucoinTicker tick, KucoinCoin coin) {
+
+        // trading scale is determined by the base currency's trade precision
+        return new CurrencyPairMetaData(tick.getFeeRate(), null, null, coin.getTradePrecision());
+    }
+
+    public static AccountInfo adaptAccountInfo(List<KucoinCoinBalance> balances) {
+
+        return new AccountInfo(
+                new Wallet(
+                        balances.stream().map(KucoinAdapters::adaptBalance).collect(Collectors.toList())));
+    }
+
+    private static Balance adaptBalance(KucoinCoinBalance balance) {
+
+        BigDecimal avail = balance.getBalance();
+        BigDecimal freezeBalance = balance.getFreezeBalance();
+        BigDecimal total = BigDecimal.ZERO.add(avail).add(freezeBalance);
+        return new Balance(Currency.getInstance(balance.getCoinType()), total, avail, freezeBalance);
+    }
+
+    public static List<FundingRecord> adaptFundingHistory(List<KucoinWalletRecord> records) {
+
+        return records.stream().map(KucoinAdapters::adaptFundingRecord).collect(Collectors.toList());
+    }
+
+    private static FundingRecord adaptFundingRecord(KucoinWalletRecord record) {
+
+        return new FundingRecord.Builder()
+                .setAmount(record.getAmount())
+                .setAddress(record.getAddress())
+                .setCurrency(Currency.getInstance(record.getCoinType()))
+                .setDate(new Date(record.getCreatedAt()))
+                .setFee(record.getFee())
+                .setStatus(record.getStatus().getFundingRecordStatus())
+                .setBlockchainTransactionHash(record.getOuterWalletTxid())
+                .setInternalId(record.getOid())
+                .setDescription(record.getRemark())
+                .setType(record.getType().getFundingRecordType())
+                .build();
+    }
 }
